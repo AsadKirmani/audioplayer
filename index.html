@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>True Glass Audio Player</title>
+    <title>Traveling Glass Audio Player</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
     <style>
@@ -34,19 +34,20 @@
             border: 1px solid rgba(255, 255, 255, 0.08); 
             border-radius: 42px;
             padding: 40px 30px;
-            width: 260px;
+            width: 280px; /* Thoda wide kiya hai taaki wave ka safar aur acha dikhe */
             display: flex;
             flex-direction: column;
             align-items: center;
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
         }
 
+        /* Canvas ab pure container par faila hai waves scroll karne ke liye */
         canvas {
             width: 100%;
-            height: 80px;
+            height: 100px;
             margin-bottom: 30px;
             display: block;
-            cursor: pointer; /* Added pointer cursor for visual feedback */
         }
 
         .info-row {
@@ -62,6 +63,7 @@
             font-size: 32px;
             font-weight: 700;
             letter-spacing: -1px;
+            z-index: 2;
         }
 
         .status-text {
@@ -92,9 +94,7 @@
             transition: transform 0.1s ease, background 0.2s ease;
         }
 
-        .btn:active {
-            transform: scale(0.92);
-        }
+        .btn:active { transform: scale(0.92); }
 
         .dark-btn {
             background: linear-gradient(145deg, #333333, #1f1f1f);
@@ -108,7 +108,7 @@
         .dark-btn:hover { background: linear-gradient(145deg, #3a3a3a, #262626); }
 
         .dark-btn svg {
-            fill: none; stroke: #ddd; stroke-width: 1.8;
+            fill: none; stroke: #ddd; stroke-width: 2;
             stroke-linecap: round; stroke-linejoin: round;
             width: 22px; height: 22px;
         }
@@ -121,7 +121,7 @@
 
         .red-btn:hover { background: #ff4f45; }
 
-        .red-btn svg { fill: white; width: 28px; height: 28px; }
+        .red-btn svg { fill: white; width: 28px; height: 28px; stroke: none; }
 
         #stopBtn svg { fill: #ddd; stroke: none; width: 16px; height: 16px; border-radius: 2px; }
 
@@ -132,6 +132,7 @@
 
     <div class="outer-shell">
         <div class="inner-glass">
+            <!-- 400x120 High Res for crisp lines -->
             <canvas id="waveformCanvas" width="400" height="120"></canvas>
             
             <div class="info-row">
@@ -140,8 +141,13 @@
             </div>
 
             <div class="controls">
+                <!-- Clean Upload/Select Icon -->
                 <button class="btn dark-btn" id="uploadBtn" title="Load Audio">
-                    <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
                 </button>
                 
                 <button class="btn red-btn" id="playPauseBtn">
@@ -173,16 +179,24 @@
         const playIcon = document.getElementById('playIcon');
         const pauseIcon = document.getElementById('pauseIcon');
 
-        // Audio Elements
         const audio = new Audio();
         let audioContext;
         
-        // Waveform Math
-        const barWidth = 4;
-        const gap = 3;
-        const totalBars = Math.floor(canvas.width / (barWidth + gap));
-        let audioPeaks = []; // Yahan poori audio file ki peaks store hongi
+        // ----------------------------------------
+        // MATH FOR TRAVELING & MAGNIFIER WAVEFORM
+        // ----------------------------------------
+        const barWidth = 3.5;
+        const gap = 3.5;
+        const barTotal = barWidth + gap;
+        
+        // Canvas par ek baar me kitne seconds ka wave dikhega (10 seconds total: 5s left, 5s right)
+        const visibleTime = 10; 
+        const pxPerSec = canvas.width / visibleTime; // Pixels travel per second (400/10 = 40px)
+        const timePerBar = barTotal / pxPerSec; // Ek bar kitne time ka data dikhayega
+        
+        let audioPeaks = []; 
         let isDrawing = false;
+        let decodedDuration = 0; // High precision duration from buffer
 
         // 1. File Upload & Decode Logic
         uploadBtn.addEventListener('click', () => audioInput.click());
@@ -192,50 +206,48 @@
             if (!file) return;
 
             statusText.innerHTML = "ANALYZING<br>TRACK...";
-            
-            // Create object URL for normal HTML5 playing
-            const objectUrl = URL.createObjectURL(file);
-            audio.src = objectUrl;
-            
-            // Initial UI reset
+            audio.src = URL.createObjectURL(file);
             timeDisplay.textContent = "00:00";
-            playIcon.style.display = 'block';
-            pauseIcon.style.display = 'none';
-
-            // Decode file for waveform extraction
+            
+            // Web Audio API se exact buffer read karke wave banayenge
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
+            decodedDuration = audioBuffer.duration;
             extractPeaks(audioBuffer);
             
             statusText.innerHTML = "TRACK READY<br>PRESS PLAY";
-            drawWaveformFrame(); // Draw the low-opacity waveform
+            drawWaveformFrame(); 
         });
 
-        // 2. Extract Peaks from full audio file
+        // 2. Extract Data for Sliding Window
         function extractPeaks(buffer) {
-            const rawData = buffer.getChannelData(0); // Pehle channel ka data lenge
+            const rawData = buffer.getChannelData(0); 
+            // Total bars needed for the entire song
+            const totalBars = Math.ceil(decodedDuration / timePerBar);
             const samplesPerBar = Math.floor(rawData.length / totalBars);
+            
             audioPeaks = [];
 
             for (let i = 0; i < totalBars; i++) {
                 let peak = 0;
                 const offset = i * samplesPerBar;
-                // Har chunk me se sabse oonchi aawaz (peak) dhoondenge
+                // Har chunk me se max volume nikalna
                 for (let j = 0; j < samplesPerBar; j++) {
-                    const absVal = Math.abs(rawData[offset + j]);
+                    const absVal = Math.abs(rawData[offset + j] || 0);
                     if (absVal > peak) peak = absVal;
                 }
                 audioPeaks.push(peak);
             }
 
-            // Normalize peaks taaki sabse uncha bar screen se bahar na jaye
+            // Normalization: Scale heights so they don't break canvas when magnified 1.5x at center
             const maxPeak = Math.max(...audioPeaks);
-            audioPeaks = audioPeaks.map(p => (p / maxPeak) * (canvas.height * 0.8)); // 80% height limit
+            const baseMaxHeight = (canvas.height * 0.55); // Limits the normal peak height
+            audioPeaks = audioPeaks.map(p => (p / maxPeak) * baseMaxHeight);
         }
 
-        // 3. Play / Pause Logic
+        // 3. Play / Pause
         playPauseBtn.addEventListener('click', () => {
             if (!audio.src) return;
 
@@ -254,12 +266,12 @@
             }
         });
 
-        // 4. Stop & Clear
+        // 4. Stop
         stopBtn.addEventListener('click', () => {
             audio.pause();
             audio.removeAttribute('src'); 
             audio.load(); 
-            audioPeaks = []; // Waveform data clear karna
+            audioPeaks = []; 
             
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
@@ -267,11 +279,11 @@
             statusText.innerHTML = "NO AUDIO<br>SELECTED";
             
             isDrawing = false;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Canvas clean
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
             audioInput.value = ""; 
         });
 
-        // 5. Timer Updates
+        // 5. Time Updates
         audio.addEventListener('timeupdate', () => {
             if (!audio.src) return;
             const current = Math.floor(audio.currentTime);
@@ -279,8 +291,7 @@
             const seconds = (current % 60).toString().padStart(2, '0');
             timeDisplay.textContent = `${minutes}:${seconds}`;
             
-            // Jab audio play ho rahi hoti hai toh timeupdate par bhi draw karte hain
-            // taaki exact frame match ho progress ke sath.
+            // Paused hone par slide bar manually update ho
             if(audio.paused) drawWaveformFrame(); 
         });
 
@@ -293,38 +304,61 @@
             drawWaveformFrame();
         });
 
-        // 6. Drawing The Pre-calculated Waveform
+        // 6. Sliding Math & Drawing Engine (The Magic)
         function drawWaveformFrame() {
             if (audioPeaks.length === 0) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const centerY = canvas.height / 2;
+            const centerX = canvas.width / 2;
 
-            // Calculate progress ratio (0.0 to 1.0)
-            const progress = (audio.currentTime || 0) / (audio.duration || 1);
-            const activeBarsCount = Math.floor(progress * totalBars);
+            // Center mark: Ek bohot hi light red glow playhead mark karne ke liye
+            let gradient = ctx.createLinearGradient(centerX, centerY - 20, centerX, centerY + 20);
+            gradient.addColorStop(0, "rgba(255, 59, 48, 0)");
+            gradient.addColorStop(0.5, "rgba(255, 59, 48, 0.4)");
+            gradient.addColorStop(1, "rgba(255, 59, 48, 0)");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(centerX - 15, 0, 30, canvas.height);
 
-            for (let i = 0; i < totalBars; i++) {
-                // Minimum bar height 4px rakhenge flat lagne se rokne ke liye
-                let h = audioPeaks[i] > 4 ? audioPeaks[i] : 4; 
-                const x = i * (barWidth + gap);
+            const currTime = audio.currentTime || 0;
+            
+            // Konse bars screen par dikhne chahiye (Start to End limit)
+            const startBar = Math.floor((currTime - visibleTime / 2) / timePerBar);
+            const endBar = Math.ceil((currTime + visibleTime / 2) / timePerBar);
 
-                if (i <= activeBarsCount) {
-                    // Jo play ho chuka hai uska color (Solid White/Bright)
-                    ctx.fillStyle = '#ffffff';
-                } else {
-                    // Jo abhi play hona baaki hai (Low Opacity)
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                }
+            for (let i = startBar; i <= endBar; i++) {
+                if (i < 0 || i >= audioPeaks.length) continue; // Out of bounds skip
 
-                // Bar draw karna
-                ctx.fillRect(x, centerY - (h / 2), barWidth, h);
+                // Wave ko smooth slide karne ka main logic
+                const barTime = i * timePerBar;
+                const x = centerX + ((barTime - currTime) * pxPerSec); 
+
+                // Magnifier Effect Logic based on distance from center
+                const dist = Math.abs(x - centerX);
+                const maxDist = centerX;
+                // Ratio: 1 at exact center, 0 at the very edges
+                const ratio = Math.max(0, 1 - (dist / maxDist)); 
+
+                // Styling variations based on ratio
+                // Center pe opacity 1 (100%), kinaro par 0.15 (15%)
+                const opacity = 0.15 + (0.85 * ratio); 
+                
+                // Center pe bar ki height 1.6x badi hogi, kinaro par shrink ho jayegi
+                const scale = 0.4 + (1.2 * Math.pow(ratio, 1.5)); 
+                
+                // Minimum bar height 2px rakhi hai taaki completely empty na lage
+                let baseHeight = audioPeaks[i] > 2 ? audioPeaks[i] : 2; 
+                let h = baseHeight * scale;
+
+                // Center wale active bars halke bright white lagene
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                ctx.fillRect(x - (barWidth/2), centerY - (h / 2), barWidth, h);
             }
         }
 
-        // Animation loop for smooth transition while playing
+        // 60FPS Animation Loop
         function drawWaveformLoop() {
-            if(audio.paused) return;
+            if(audio.paused) return; // Battery bachane ke liye pause pe loop band
             isDrawing = true;
             drawWaveformFrame();
             requestAnimationFrame(drawWaveformLoop);
