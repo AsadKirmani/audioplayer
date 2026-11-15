@@ -3,155 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Waveform UI</title>
+    <title>Audio Player Waveform</title>
     <style>
         body {
             background-color: #1a1a1a;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
+            font-family: monospace, sans-serif;
             color: white;
-            font-family: sans-serif;
         }
-        .recorder-container {
-            background: #222;
+
+        .player-container {
+            background: #242424;
             padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+
         canvas {
-            width: 300px;
+            width: 100%;
             height: 100px;
-            display: block;
             margin-bottom: 20px;
         }
-        button {
-            background: #ff473e;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-size: 16px;
-            cursor: pointer;
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .time-display {
+            font-size: 28px;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .red-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff473e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff473e;
+        }
+
+        .status-text {
+            font-size: 10px;
+            color: #888;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Left/Right Buttons */
+        .icon-btn {
+            background: #333;
+            width: 50px;
+            height: 50px;
+            color: white;
+        }
+        
+        .icon-btn:hover {
+            background: #444;
+        }
+
+        /* Center Play Button */
+        .play-btn {
+            background: #ff473e;
+            width: 65px;
+            height: 65px;
+            box-shadow: 0 5px 15px rgba(255, 71, 62, 0.4);
+        }
+
+        .play-btn svg {
+            fill: white;
+            width: 24px;
+            height: 24px;
+        }
+        
+        .icon-btn svg {
+            fill: white;
+            width: 20px;
+            height: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="recorder-container">
+    <div class="player-container">
         <canvas id="waveformCanvas" width="300" height="100"></canvas>
-        <button id="startBtn">Start Recording</button>
+        
+        <div class="info-row">
+            <div class="time-display">
+                <div class="red-dot"></div>
+                <span id="currentTime">00:00</span>
+            </div>
+            <div class="status-text" id="statusText">SELECT AUDIO<br>TO PLAY...</div>
+        </div>
+
+        <div class="controls">
+            <!-- Select File Button -->
+            <button class="btn icon-btn" id="uploadBtn" title="Select Audio File">
+                <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            </button>
+            
+            <!-- Play/Pause Button -->
+            <button class="btn play-btn" id="playPauseBtn">
+                <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            
+            <!-- Stop Button -->
+            <button class="btn icon-btn" id="stopBtn" title="Stop">
+                <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+            </button>
+        </div>
+
+        <!-- Hidden File Input -->
+        <input type="file" id="audioInput" accept="audio/*">
     </div>
 
-    <!-- JavaScript nichhe diya gaya hai -->
     <script>
-    const canvas = document.getElementById('waveformCanvas');
-    const ctx = canvas.getContext('2d');
-    const startBtn = document.getElementById('startBtn');
+        const canvas = document.getElementById('waveformCanvas');
+        const ctx = canvas.getContext('2d');
+        const audioInput = document.getElementById('audioInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const timeDisplay = document.getElementById('currentTime');
+        const statusText = document.getElementById('statusText');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
 
-    let audioContext, analyser, dataArray;
-    
-    // Waveform bars ki history store karne ke liye array
-    const totalBars = 50; 
-    const barHistory = new Array(totalBars).fill(0); 
+        let audioContext, analyser, source;
+        const audio = new Audio();
+        audio.crossOrigin = "anonymous";
 
-    async function startRecording() {
-        try {
-            // 1. Microphone access lena
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // 2. Web Audio API setup
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamSource(stream);
-            
-            source.connect(analyser);
-            analyser.fftSize = 256; 
-            const bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
+        // Waveform properties
+        const totalBars = 50;
+        const barHistory = new Array(totalBars).fill(0);
+        let isDrawing = false;
+        let dataArray, bufferLength;
 
-            startBtn.innerText = "Recording...";
-            startBtn.style.background = "#555";
-            
-            // Drawing loop start karna
-            drawWaveform();
-            
-        } catch (err) {
-            console.error("Microphone access denied!", err);
-            alert("Microphone permission chahiye!");
+        // 1. Handle File Selection
+        uploadBtn.addEventListener('click', () => audioInput.click());
+
+        audioInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const objectUrl = URL.createObjectURL(file);
+                audio.src = objectUrl;
+                statusText.innerHTML = "AUDIO READY<br>PRESS PLAY";
+                timeDisplay.textContent = "00:00";
+                
+                // Reset waveform visual
+                barHistory.fill(0);
+                drawWaveformFrame();
+            }
+        });
+
+        // 2. Setup Web Audio API (Lazily initialized on first play)
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                // Route: Audio Element -> Analyser -> Speakers
+                source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         }
-    }
 
-    function drawWaveform() {
-        requestAnimationFrame(drawWaveform); // Continuous loop
-
-        // Time domain data (raw waveform) get karna
-        analyser.getByteTimeDomainData(dataArray);
-
-        // 3. Current Volume (Amplitude) Calculate karna using RMS (Root Mean Square)
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            let val = (dataArray[i] - 128) / 128; // Normalize value between -1 and 1
-            sum += val * val;
-        }
-        let rms = Math.sqrt(sum / dataArray.length);
-        
-        // Volume ko canvas height ke hisaab se scale karna (Max bar height 80px)
-        let barHeight = rms * 400; 
-        if (barHeight < 2) barHeight = 2; // Minimum height for idle state
-        if (barHeight > 80) barHeight = 80; // Maximum height limit
-
-        // 4. Array update karna (purani value hatakar nayi dalna)
-        barHistory.shift(); 
-        barHistory.push(barHeight); 
-
-        // 5. Canvas par draw karna
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Center dotted line draw karna (optional, UI me halki si dikh rahi hai)
-        ctx.beginPath();
-        ctx.setLineDash([2, 4]);
-        ctx.moveTo(0, canvas.height / 2);
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-        ctx.stroke();
-        
-        // Bars draw karna
-        const barWidth = 3;
-        const gap = 3;
-        const centerY = canvas.height / 2;
-
-        for (let i = 0; i < barHistory.length; i++) {
-            const h = barHistory[i];
-            const x = i * (barWidth + gap);
-
-            // Styling: Left side fade effect aur right-most bar Orange
-            if (i === barHistory.length - 1) {
-                // Active trailing bar (Orange/Red)
-                ctx.fillStyle = '#ff473e'; 
-            } else {
-                // Fade effect (opacity based on index)
-                const alpha = (i / barHistory.length) * 0.8;
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        // 3. Play / Pause Logic
+        playPauseBtn.addEventListener('click', () => {
+            if (!audio.src) {
+                alert("Pehle ek audio file select karein!");
+                return;
             }
 
-            // Bar draw karna (center se upar aur niche)
-            ctx.fillRect(x, centerY - (h / 2), barWidth, h);
+            initAudioContext();
+
+            if (audio.paused) {
+                audio.play();
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                statusText.innerHTML = "NOW PLAYING<br>AUDIO...";
+                if (!isDrawing) drawWaveform();
+            } else {
+                audio.pause();
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                statusText.innerHTML = "AUDIO PAUSED<br>...";
+            }
+        });
+
+        // 4. Stop Logic
+        stopBtn.addEventListener('click', () => {
+            audio.pause();
+            audio.currentTime = 0; // Reset time to 0
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+            statusText.innerHTML = "AUDIO STOPPED<br>...";
+            
+            // Allow the canvas to animate back to a flat line
+        });
+
+        // Update Timer Text
+        audio.addEventListener('timeupdate', () => {
+            const current = Math.floor(audio.currentTime);
+            const minutes = Math.floor(current / 60).toString().padStart(2, '0');
+            const seconds = (current % 60).toString().padStart(2, '0');
+            timeDisplay.textContent = `${minutes}:${seconds}`;
+        });
+
+        // Auto-stop when audio finishes
+        audio.addEventListener('ended', () => {
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+            statusText.innerHTML = "AUDIO ENDED<br>...";
+            audio.currentTime = 0;
+        });
+
+        // 5. Drawing the Waveform
+        function drawWaveformFrame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dotted center line
+            ctx.beginPath();
+            ctx.setLineDash([2, 4]);
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.stroke();
+
+            const barWidth = 3;
+            const gap = 3;
+            const centerY = canvas.height / 2;
+
+            for (let i = 0; i < barHistory.length; i++) {
+                const h = barHistory[i];
+                const x = i * (barWidth + gap);
+
+                if (i === barHistory.length - 1) {
+                    ctx.fillStyle = '#ff473e'; // Rightmost active bar
+                } else {
+                    const alpha = (i / barHistory.length) * 0.8;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                }
+
+                ctx.fillRect(x, centerY - (h / 2), barWidth, h);
+            }
         }
-    }
 
-    startBtn.addEventListener('click', () => {
-        if (!audioContext) {
-            startRecording();
+        function drawWaveform() {
+            isDrawing = true;
+            requestAnimationFrame(drawWaveform);
+
+            if (!audio.paused) {
+                // Audio chal rahi hai tab current volume nikalna
+                analyser.getByteTimeDomainData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    let val = (dataArray[i] - 128) / 128;
+                    sum += val * val;
+                }
+                let rms = Math.sqrt(sum / dataArray.length);
+                
+                let barHeight = rms * 400; 
+                if (barHeight < 2) barHeight = 2; // Flat line base height
+                if (barHeight > 80) barHeight = 80;
+
+                barHistory.shift();
+                barHistory.push(barHeight);
+            } else {
+                // Agar paused ya stopped hai, toh waveform ko dheere dheere flat karna
+                barHistory.shift();
+                barHistory.push(2); 
+            }
+
+            drawWaveformFrame();
         }
-    });
-</script>
 
+        // Draw initial flat line on load
+        drawWaveformFrame();
 
+    </script>
 </body>
 </html>
