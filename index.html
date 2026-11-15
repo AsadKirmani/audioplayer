@@ -11,18 +11,16 @@
             --red-accent: #ff3b30;
         }
 
-        /* 1. Global Box Sizing Fix */
         *, *::before, *::after {
             box-sizing: border-box;
         }
 
-        /* 2. Strict Page Dimensions Fix */
         html, body {
             width: 100%;
-            height: 100dvh; /* Changed from 100vh to 100dvh (Dynamic Viewport) to prevent mobile height jumps */
+            height: 100dvh; 
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Strictly prevent any scrolling */
+            overflow: hidden; 
             background-color: #050505; 
         }
 
@@ -36,7 +34,6 @@
             position: relative;
         }
 
-        /* 3. Restricted Ambient Glow */
         .ambient-bg {
             position: absolute;
             width: 100vw;
@@ -45,7 +42,7 @@
             filter: blur(60px);
             z-index: 0;
             animation: float 10s infinite alternate ease-in-out;
-            pointer-events: none; /* Prevents touch interference */
+            pointer-events: none; 
         }
 
         @keyframes float {
@@ -69,12 +66,9 @@
             border: 1px solid rgba(255, 255, 255, 0.15); 
             border-radius: 42px;
             padding: 40px 25px;
-            
-            /* 4. Fixed Container Size Fix */
             width: 320px; 
-            height: 380px; /* Fixed height so changing states doesn't shrink/grow the container */
-            max-width: 90vw; /* Keeps it safe on very small phones */
-            
+            height: 380px; 
+            max-width: 90vw; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -82,11 +76,8 @@
             box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden; 
-            
-            /* Removed 'transition: all' to stop the layout jitter bug */
         }
 
-        /* --- STATE 1: UPLOAD UI --- */
         #uploadState {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; gap: 20px; width: 100%; height: 100%;
@@ -96,7 +87,6 @@
             font-size: 14px; color: #ddd; letter-spacing: 1px; font-family: sans-serif; font-weight: 600;
         }
 
-        /* --- STATE 2: PLAYER UI --- */
         #playerState {
             display: none; flex-direction: column; align-items: center; justify-content: space-between; 
             width: 100%; height: 100%; padding: 10px 0;
@@ -104,7 +94,10 @@
 
         canvas {
             width: 100%; height: 100px; display: block;
+            cursor: grab;
+            touch-action: none; 
         }
+        canvas:active { cursor: grabbing; }
 
         .info-row {
             display: flex; align-items: center; justify-content: space-between;
@@ -115,10 +108,28 @@
             font-size: 26px; font-weight: 700; letter-spacing: -1px; width: 85px; text-align: left;
         }
 
+        /* --- NEW TRACK INFO LAYOUT (Title + Artist) --- */
+        .track-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            max-width: 130px;
+            padding: 0 5px;
+        }
+
         .track-title {
-            font-size: 11px; color: #ddd; letter-spacing: 0.5px; font-family: sans-serif;
-            font-weight: 600; text-transform: uppercase; text-align: center; flex-grow: 1;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; padding: 0 10px;
+            font-size: 11px; color: #fff; letter-spacing: 0.5px; font-family: sans-serif;
+            font-weight: 700; text-transform: uppercase; text-align: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+        }
+
+        .track-artist {
+            font-size: 9px; color: #888; letter-spacing: 0.5px; font-family: sans-serif;
+            font-weight: 600; text-transform: uppercase; text-align: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+            margin-top: 3px;
         }
 
         .settings-toggle {
@@ -157,7 +168,6 @@
         
         #stopBtn svg { width: 26px; height: 26px; }
 
-        /* --- SETTINGS PANEL --- */
         #settingsPanel {
             position: absolute; bottom: -100%; left: 0; right: 0;
             background: rgba(20, 20, 22, 0.95); backdrop-filter: blur(15px);
@@ -166,9 +176,7 @@
             transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
         }
         
-        #settingsPanel.active {
-            bottom: 0;
-        }
+        #settingsPanel.active { bottom: 0; }
 
         .slider-group { display: flex; flex-direction: column; gap: 8px; }
 
@@ -198,7 +206,6 @@
     <div class="outer-shell">
         <div class="inner-glass">
             
-            <!-- STATE 1: UPLOAD -->
             <div id="uploadState">
                 <button class="btn dark-btn" id="mainUploadBtn" style="width: 80px; height: 80px;">
                     <svg viewBox="0 0 24 24" style="fill: none; stroke: white; stroke-width: 1.5; stroke-linecap: round;">
@@ -210,24 +217,24 @@
                 <div class="upload-text">SELECT AUDIO FILE</div>
             </div>
 
-            <!-- STATE 2: PLAYER -->
             <div id="playerState">
-                <canvas id="waveformCanvas" width="400" height="120"></canvas>
+                <canvas id="waveformCanvas" width="400" height="120" title="Slide to seek"></canvas>
                 
                 <div class="info-row">
                     <span class="time-display" id="currentTime">00:00</span>
-                    <div class="track-title" id="trackTitle">Track Name</div>
+                    
+                    <!-- NEW TRACK INFO CONTAINER -->
+                    <div class="track-info">
+                        <div class="track-title" id="trackTitle">Track Name</div>
+                        <div class="track-artist" id="trackArtist">Unknown Artist</div>
+                    </div>
                     
                     <button class="settings-toggle" id="settingsBtn">
                         <svg viewBox="0 0 24 24">
-                            <line x1="4" y1="21" x2="4" y2="14"></line>
-                            <line x1="4" y1="10" x2="4" y2="3"></line>
-                            <line x1="12" y1="21" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12" y2="3"></line>
-                            <line x1="20" y1="21" x2="20" y2="16"></line>
-                            <line x1="20" y1="12" x2="20" y2="3"></line>
-                            <line x1="1" y1="14" x2="7" y2="14"></line>
-                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
                             <line x1="17" y1="16" x2="23" y2="16"></line>
                         </svg>
                     </button>
@@ -241,8 +248,7 @@
                     <button class="btn red-btn" id="playPauseBtn">
                         <svg id="playIcon" viewBox="0 0 24 24" style="margin-left: 4px;"><path d="M8 5v14l11-7z"/></svg>
                         <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
-                            <rect x="6" y="5" width="4" height="14" rx="1"></rect>
-                            <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+                            <rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect>
                         </svg>
                         <svg id="replayIcon" viewBox="0 0 24 24" style="display: none;">
                             <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
@@ -252,13 +258,11 @@
                     <button class="btn dark-btn" id="changeTrackBtn" title="Change Audio">
                         <svg viewBox="0 0 24 24" style="fill: none; stroke: #ddd; stroke-width: 2; stroke-linecap: round;">
                             <path d="M9 18V5l12-2v13"></path>
-                            <circle cx="6" cy="18" r="3"></circle>
-                            <circle cx="18" cy="16" r="3"></circle>
+                            <circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle>
                         </svg>
                     </button>
                 </div>
 
-                <!-- SETTINGS PANEL -->
                 <div id="settingsPanel">
                     <div class="slider-group">
                         <div class="slider-label"><span>Volume</span><span id="volVal">100%</span></div>
@@ -288,6 +292,7 @@
         const stopBtn = document.getElementById('stopBtn');
         const timeDisplay = document.getElementById('currentTime');
         const trackTitle = document.getElementById('trackTitle');
+        const trackArtist = document.getElementById('trackArtist');
         
         const playIcon = document.getElementById('playIcon');
         const pauseIcon = document.getElementById('pauseIcon');
@@ -303,8 +308,8 @@
         const audio = new Audio();
         let audioContext;
         
-        const barWidth = 4;
-        const gap = 3;
+        const barWidth = 5; 
+        const gap = 4; 
         const barTotal = barWidth + gap;
         const visibleTime = 10; 
         const pxPerSec = canvas.width / visibleTime; 
@@ -315,6 +320,79 @@
         let decodedDuration = 0; 
         let isSettingsOpen = false;
 
+        let isDragging = false;
+        let dragged = false;
+        let startDragX = 0;
+        let startDragTime = 0;
+        let wasPlayingBeforeDrag = false;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!audio.src || !audio.duration) return;
+            isDragging = true;
+            dragged = false;
+            startDragX = e.clientX;
+            startDragTime = audio.currentTime;
+            
+            if (!audio.paused) {
+                wasPlayingBeforeDrag = true;
+                audio.pause();
+            } else {
+                wasPlayingBeforeDrag = false;
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            
+            if (Math.abs(e.clientX - startDragX) > 5) {
+                dragged = true;
+            }
+
+            if (dragged) {
+                const rect = canvas.getBoundingClientRect();
+                const pxPerSecScreen = rect.width / visibleTime;
+                const deltaX = e.clientX - startDragX;
+                
+                let newTime = startDragTime - (deltaX / pxPerSecScreen);
+                if (newTime < 0) newTime = 0;
+                if (newTime > audio.duration) newTime = audio.duration;
+                
+                audio.currentTime = newTime;
+                drawWaveformFrame(); 
+                
+                const current = Math.floor(newTime);
+                const minutes = Math.floor(current / 60).toString().padStart(2, '0');
+                const seconds = (current % 60).toString().padStart(2, '0');
+                timeDisplay.textContent = `${minutes}:${seconds}`;
+            }
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (!isDragging) return;
+
+            if (!dragged) {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left; 
+                const centerX = rect.width / 2;
+                const pxPerSecScreen = rect.width / visibleTime;
+                
+                const timeOffset = (clickX - centerX) / pxPerSecScreen;
+                let newTime = audio.currentTime + timeOffset;
+                
+                if (newTime < 0) newTime = 0;
+                if (newTime > audio.duration) newTime = audio.duration;
+                
+                audio.currentTime = newTime;
+                drawWaveformFrame();
+            }
+            
+            isDragging = false;
+            if (wasPlayingBeforeDrag) {
+                audio.play();
+                drawWaveformLoop();
+            }
+        });
+
         mainUploadBtn.addEventListener('click', () => audioInput.click());
         changeTrackBtn.addEventListener('click', () => audioInput.click());
 
@@ -322,8 +400,21 @@
             const file = this.files[0];
             if (!file) return;
 
+            // --- SMART TITLE & ARTIST EXTRACTION ---
             let cleanName = file.name.replace(/\.[^/.]+$/, "");
-            trackTitle.textContent = cleanName;
+            let parsedArtist = "Unknown Artist";
+            let parsedTitle = cleanName;
+
+            // Check if filename has a hyphen (e.g., "A.R. Rahman - Kun Faya Kun.mp3")
+            if (cleanName.includes("-")) {
+                const parts = cleanName.split("-");
+                parsedArtist = parts[0].trim();
+                // Join the rest back in case the song title itself has a hyphen
+                parsedTitle = parts.slice(1).join("-").trim(); 
+            }
+
+            trackTitle.textContent = parsedTitle;
+            trackArtist.textContent = parsedArtist;
 
             uploadState.style.display = 'none';
             playerState.style.display = 'flex';
@@ -344,7 +435,11 @@
             
             decodedDuration = audioBuffer.duration;
             extractPeaks(audioBuffer);
-            drawWaveformFrame(); 
+            drawWaveformFrame();
+            audio.play(); 
+            playIcon.style.display = 'none'; 
+            pauseIcon.style.display = 'block'; 
+            drawWaveformLoop(); 
         });
 
         settingsBtn.addEventListener('click', () => {
@@ -408,7 +503,7 @@
         });
 
         audio.addEventListener('timeupdate', () => {
-            if (!audio.src) return;
+            if (!audio.src || isDragging) return; 
             const current = Math.floor(audio.currentTime);
             const minutes = Math.floor(current / 60).toString().padStart(2, '0');
             const seconds = (current % 60).toString().padStart(2, '0');
@@ -441,7 +536,7 @@
             }
 
             const maxPeak = Math.max(...audioPeaks);
-            const baseMaxHeight = (canvas.height * 0.7); 
+            const baseMaxHeight = (canvas.height * 0.45); 
             audioPeaks = audioPeaks.map(p => (p / maxPeak) * baseMaxHeight);
         }
 
@@ -469,7 +564,7 @@
                 }
 
                 const distRatio = Math.max(0, 1 - (distInSeconds / (visibleTime / 2))); 
-                const scale = 0.6 + (0.7 * distRatio); 
+                const scale = 0.4 + (0.6 * distRatio); 
                 
                 let baseHeight = audioPeaks[i] > 2 ? audioPeaks[i] : 2; 
                 let h = baseHeight * scale;
@@ -480,7 +575,7 @@
         }
 
         function drawWaveformLoop() {
-            if(audio.paused) return; 
+            if(audio.paused || isDragging) return; 
             isDrawing = true;
             drawWaveformFrame();
             requestAnimationFrame(drawWaveformLoop);
