@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Glass Audio Player</title>
+    <title>True Glass Audio Player</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
     <style>
@@ -14,12 +14,11 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            font-family: 'Space Mono', monospace; /* Premium Monospace Font */
+            font-family: 'Space Mono', monospace;
             color: white;
             user-select: none;
         }
 
-        /* OUTER CONTAINER */
         .outer-shell {
             background: #181818;
             padding: 12px;
@@ -30,7 +29,6 @@
                 inset 0 -1px 2px rgba(0, 0, 0, 0.5);
         }
 
-        /* INNER CONTAINER */
         .inner-glass {
             background: linear-gradient(160deg, #2a2a2c 0%, #161616 100%);
             border: 1px solid rgba(255, 255, 255, 0.08); 
@@ -48,9 +46,9 @@
             height: 80px;
             margin-bottom: 30px;
             display: block;
+            cursor: pointer; /* Added pointer cursor for visual feedback */
         }
 
-        /* Typography & Info Row */
         .info-row {
             display: flex;
             align-items: center;
@@ -58,21 +56,6 @@
             gap: 15px;
             margin-bottom: 35px;
             width: 100%;
-        }
-
-        .time-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .red-dot {
-            width: 8px;
-            height: 8px;
-            background: #ff3b30;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
-            transition: opacity 0.3s ease;
         }
 
         .time-display {
@@ -87,16 +70,15 @@
             letter-spacing: 1px;
             text-transform: uppercase;
             line-height: 1.4;
-            font-family: sans-serif; /* Keeps the subtext clean */
+            font-family: sans-serif;
             font-weight: 600;
         }
 
-        /* Controls Section */
         .controls {
             display: flex;
             align-items: center;
-            justify-content: center; /* Centered instead of space-between */
-            gap: 15px; /* Reduced gap between buttons */
+            justify-content: center;
+            gap: 15px; 
             width: 100%;
         }
 
@@ -114,60 +96,34 @@
             transform: scale(0.92);
         }
 
-        /* Dark Glossy Buttons (Bigger size now) */
         .dark-btn {
             background: linear-gradient(145deg, #333333, #1f1f1f);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 
-                3px 3px 8px rgba(0, 0, 0, 0.4),
-                inset 0 1px 1px rgba(255, 255, 255, 0.1);
-            width: 60px; /* Increased from 48px */
-            height: 60px; /* Increased from 48px */
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            width: 60px;
+            height: 60px;
             color: white;
         }
 
-        .dark-btn:hover {
-            background: linear-gradient(145deg, #3a3a3a, #262626);
-        }
+        .dark-btn:hover { background: linear-gradient(145deg, #3a3a3a, #262626); }
 
         .dark-btn svg {
-            fill: none;
-            stroke: #ddd;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            width: 22px;
-            height: 22px;
+            fill: none; stroke: #ddd; stroke-width: 1.8;
+            stroke-linecap: round; stroke-linejoin: round;
+            width: 22px; height: 22px;
         }
 
-        /* Red Pause/Play Button (Bigger size now) */
         .red-btn {
             background: #ff3b30;
-            width: 76px; /* Increased from 60px */
-            height: 76px; /* Increased from 60px */
-            box-shadow: 
-                0 8px 20px rgba(255, 59, 48, 0.35),
-                inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            width: 76px; height: 76px;
+            box-shadow: 0 8px 20px rgba(255, 59, 48, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2);
         }
 
-        .red-btn:hover {
-            background: #ff4f45;
-        }
+        .red-btn:hover { background: #ff4f45; }
 
-        .red-btn svg {
-            fill: white;
-            width: 28px;
-            height: 28px;
-        }
+        .red-btn svg { fill: white; width: 28px; height: 28px; }
 
-        /* Stop Button Customization */
-        #stopBtn svg {
-            fill: #ddd;
-            stroke: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-        }
+        #stopBtn svg { fill: #ddd; stroke: none; width: 16px; height: 16px; border-radius: 2px; }
 
         input[type="file"] { display: none; }
     </style>
@@ -179,27 +135,17 @@
             <canvas id="waveformCanvas" width="400" height="120"></canvas>
             
             <div class="info-row">
-                <div class="time-container">
-                    <div class="red-dot" id="recDot" style="opacity: 0.3;"></div>
-                    <span class="time-display" id="currentTime">00:00</span>
-                </div>
+                <span class="time-display" id="currentTime">00:00</span>
                 <div class="status-text" id="statusText">NO AUDIO<br>SELECTED</div>
             </div>
 
             <div class="controls">
-                <!-- Music/Folder Icon replacing the settings slider -->
                 <button class="btn dark-btn" id="uploadBtn" title="Load Audio">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 18V5l12-2v13"></path>
-                        <circle cx="6" cy="18" r="3"></circle>
-                        <circle cx="18" cy="16" r="3"></circle>
-                    </svg>
+                    <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </button>
                 
                 <button class="btn red-btn" id="playPauseBtn">
-                    <!-- Play Icon -->
                     <svg id="playIcon" viewBox="0 0 24 24" style="margin-left: 4px;"><path d="M8 5v14l11-7z"/></svg>
-                    <!-- Pause Icon -->
                     <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
                         <rect x="6" y="5" width="4" height="14" rx="1"></rect>
                         <rect x="14" y="5" width="4" height="14" rx="1"></rect>
@@ -226,176 +172,164 @@
         const statusText = document.getElementById('statusText');
         const playIcon = document.getElementById('playIcon');
         const pauseIcon = document.getElementById('pauseIcon');
-        const recDot = document.getElementById('recDot');
 
-        let audioContext, analyser, source;
+        // Audio Elements
         const audio = new Audio();
-        audio.crossOrigin = "anonymous";
-
-        // Waveform Math
-        const barWidth = 3;
-        const gap = 3.5;
-        const activeX = canvas.width * 0.60; 
-        const totalBars = Math.floor(activeX / (barWidth + gap));
-        const barHistory = new Array(totalBars).fill(2);
+        let audioContext;
         
+        // Waveform Math
+        const barWidth = 4;
+        const gap = 3;
+        const totalBars = Math.floor(canvas.width / (barWidth + gap));
+        let audioPeaks = []; // Yahan poori audio file ki peaks store hongi
         let isDrawing = false;
-        let dataArray, bufferLength;
 
-        // 1. File Upload Logic
+        // 1. File Upload & Decode Logic
         uploadBtn.addEventListener('click', () => audioInput.click());
 
-        audioInput.addEventListener('change', function() {
+        audioInput.addEventListener('change', async function() {
             const file = this.files[0];
-            if (file) {
-                const objectUrl = URL.createObjectURL(file);
-                audio.src = objectUrl;
-                statusText.innerHTML = "TRACK READY<br>PRESS PLAY";
-                timeDisplay.textContent = "00:00";
-                
-                barHistory.fill(2);
-                drawWaveformFrame();
-            }
+            if (!file) return;
+
+            statusText.innerHTML = "ANALYZING<br>TRACK...";
+            
+            // Create object URL for normal HTML5 playing
+            const objectUrl = URL.createObjectURL(file);
+            audio.src = objectUrl;
+            
+            // Initial UI reset
+            timeDisplay.textContent = "00:00";
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+
+            // Decode file for waveform extraction
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            extractPeaks(audioBuffer);
+            
+            statusText.innerHTML = "TRACK READY<br>PRESS PLAY";
+            drawWaveformFrame(); // Draw the low-opacity waveform
         });
 
-        // 2. Setup Web Audio API
-        function initAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
+        // 2. Extract Peaks from full audio file
+        function extractPeaks(buffer) {
+            const rawData = buffer.getChannelData(0); // Pehle channel ka data lenge
+            const samplesPerBar = Math.floor(rawData.length / totalBars);
+            audioPeaks = [];
 
-                source = audioContext.createMediaElementSource(audio);
-                source.connect(analyser);
-                analyser.connect(audioContext.destination);
+            for (let i = 0; i < totalBars; i++) {
+                let peak = 0;
+                const offset = i * samplesPerBar;
+                // Har chunk me se sabse oonchi aawaz (peak) dhoondenge
+                for (let j = 0; j < samplesPerBar; j++) {
+                    const absVal = Math.abs(rawData[offset + j]);
+                    if (absVal > peak) peak = absVal;
+                }
+                audioPeaks.push(peak);
             }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
+
+            // Normalize peaks taaki sabse uncha bar screen se bahar na jaye
+            const maxPeak = Math.max(...audioPeaks);
+            audioPeaks = audioPeaks.map(p => (p / maxPeak) * (canvas.height * 0.8)); // 80% height limit
         }
 
         // 3. Play / Pause Logic
         playPauseBtn.addEventListener('click', () => {
             if (!audio.src) return;
 
-            initAudioContext();
-
             if (audio.paused) {
                 audio.play();
                 playIcon.style.display = 'none';
                 pauseIcon.style.display = 'block';
                 statusText.innerHTML = "NOW PLAYING<br>AUDIO TRACK";
-                recDot.style.opacity = '1';
-                if (!isDrawing) drawWaveform();
+                if (!isDrawing) drawWaveformLoop();
             } else {
                 audio.pause();
                 playIcon.style.display = 'block';
                 pauseIcon.style.display = 'none';
                 statusText.innerHTML = "TRACK PAUSED<br>...";
-                recDot.style.opacity = '0.3';
-                // Note: We don't stop the animation loop, it just freezes the array state.
+                isDrawing = false;
             }
         });
 
-        // 4. Stop & Remove File Logic (Updated!)
+        // 4. Stop & Clear
         stopBtn.addEventListener('click', () => {
             audio.pause();
-            audio.removeAttribute('src'); // Completely remove the audio source
-            audio.load(); // Reset the audio element
+            audio.removeAttribute('src'); 
+            audio.load(); 
+            audioPeaks = []; // Waveform data clear karna
             
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
             timeDisplay.textContent = "00:00";
             statusText.innerHTML = "NO AUDIO<br>SELECTED";
-            recDot.style.opacity = '0.3';
             
-            // Reset waveform back to flat line immediately
-            barHistory.fill(2);
-            drawWaveformFrame();
-            
-            // Reset input so the same file can be selected again
+            isDrawing = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Canvas clean
             audioInput.value = ""; 
         });
 
-        // Update Timer Text
+        // 5. Timer Updates
         audio.addEventListener('timeupdate', () => {
             if (!audio.src) return;
             const current = Math.floor(audio.currentTime);
             const minutes = Math.floor(current / 60).toString().padStart(2, '0');
             const seconds = (current % 60).toString().padStart(2, '0');
             timeDisplay.textContent = `${minutes}:${seconds}`;
+            
+            // Jab audio play ho rahi hoti hai toh timeupdate par bhi draw karte hain
+            // taaki exact frame match ho progress ke sath.
+            if(audio.paused) drawWaveformFrame(); 
         });
 
         audio.addEventListener('ended', () => {
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
             statusText.innerHTML = "TRACK ENDED<br>PRESS PLAY";
-            recDot.style.opacity = '0.3';
             audio.currentTime = 0;
+            isDrawing = false;
+            drawWaveformFrame();
         });
 
-        // 5. Drawing Functions
+        // 6. Drawing The Pre-calculated Waveform
         function drawWaveformFrame() {
+            if (audioPeaks.length === 0) return;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const centerY = canvas.height / 2;
 
-            // Dotted Background Line
-            ctx.beginPath();
-            ctx.setLineDash([2, 5]);
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(canvas.width, centerY);
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.setLineDash([]);
+            // Calculate progress ratio (0.0 to 1.0)
+            const progress = (audio.currentTime || 0) / (audio.duration || 1);
+            const activeBarsCount = Math.floor(progress * totalBars);
 
-            // Orange Active Line
-            const currentHeight = barHistory[barHistory.length - 1] || 2;
-            ctx.fillStyle = '#ff3b30';
-            ctx.fillRect(activeX, centerY - (currentHeight / 2), barWidth, currentHeight);
+            for (let i = 0; i < totalBars; i++) {
+                // Minimum bar height 4px rakhenge flat lagne se rokne ke liye
+                let h = audioPeaks[i] > 4 ? audioPeaks[i] : 4; 
+                const x = i * (barWidth + gap);
 
-            // Left Fading History
-            for (let i = barHistory.length - 2; i >= 0; i--) {
-                const h = barHistory[i];
-                const distanceIndex = (barHistory.length - 1) - i; 
-                const x = activeX - (distanceIndex * (barWidth + gap));
+                if (i <= activeBarsCount) {
+                    // Jo play ho chuka hai uska color (Solid White/Bright)
+                    ctx.fillStyle = '#ffffff';
+                } else {
+                    // Jo abhi play hona baaki hai (Low Opacity)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                }
 
-                const alpha = i / barHistory.length; 
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                
+                // Bar draw karna
                 ctx.fillRect(x, centerY - (h / 2), barWidth, h);
             }
         }
 
-        function drawWaveform() {
+        // Animation loop for smooth transition while playing
+        function drawWaveformLoop() {
+            if(audio.paused) return;
             isDrawing = true;
-            requestAnimationFrame(drawWaveform);
-
-            // ONLY push new data if the audio is currently playing. 
-            // If paused, the array is NOT modified, creating a perfect freeze effect.
-            if (!audio.paused && audio.src) {
-                analyser.getByteTimeDomainData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    let val = (dataArray[i] - 128) / 128;
-                    sum += val * val;
-                }
-                let rms = Math.sqrt(sum / dataArray.length);
-                
-                let barHeight = rms * 500; 
-                if (barHeight < 2) barHeight = 2; 
-                if (barHeight > 90) barHeight = 90; 
-
-                barHistory.shift();
-                barHistory.push(barHeight);
-            }
-            
             drawWaveformFrame();
+            requestAnimationFrame(drawWaveformLoop);
         }
 
-        drawWaveformFrame();
     </script>
 </body>
 </html>
