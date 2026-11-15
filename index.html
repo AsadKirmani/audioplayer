@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traveling Glass Audio Player</title>
+    <title>Audio Player</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --red-accent: #ff3b30;
+            --glass-bg: linear-gradient(160deg, #2a2a2c 0%, #161616 100%);
+        }
+
         body {
             background-color: #121212; 
             display: flex;
@@ -23,58 +28,108 @@
             background: #181818;
             padding: 12px;
             border-radius: 54px;
-            box-shadow: 
-                0 30px 60px rgba(0, 0, 0, 0.6),
-                inset 0 1px 2px rgba(255, 255, 255, 0.02),
-                inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.02), inset 0 -1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .inner-glass {
-            background: linear-gradient(160deg, #2a2a2c 0%, #161616 100%);
+            background: var(--glass-bg);
             border: 1px solid rgba(255, 255, 255, 0.08); 
             border-radius: 42px;
             padding: 40px 30px;
-            width: 280px; /* Thoda wide kiya hai taaki wave ka safar aur acha dikhe */
+            width: 280px; 
+            min-height: 250px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
             position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        /* Canvas ab pure container par faila hai waves scroll karne ke liye */
+        /* --- STATE 1: INITIAL UPLOAD UI --- */
+        #uploadState {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #aaa;
+            letter-spacing: 1px;
+            font-family: sans-serif;
+            font-weight: 600;
+        }
+
+        /* --- STATE 2: PLAYER UI --- */
+        #playerState {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
         canvas {
             width: 100%;
-            height: 100px;
-            margin-bottom: 30px;
+            height: 90px;
+            margin-bottom: 25px;
             display: block;
         }
 
         .info-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 35px;
+            justify-content: space-between;
             width: 100%;
+            margin-bottom: 30px;
         }
 
         .time-display {
-            font-size: 32px;
+            font-size: 26px;
             font-weight: 700;
             letter-spacing: -1px;
-            z-index: 2;
+            width: 80px;
         }
 
-        .status-text {
-            font-size: 10px;
-            color: #888;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            line-height: 1.4;
+        .track-title {
+            font-size: 11px;
+            color: #ddd;
+            letter-spacing: 0.5px;
             font-family: sans-serif;
             font-weight: 600;
+            text-transform: uppercase;
+            text-align: center;
+            flex-grow: 1;
+            /* Truncate long names */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 130px;
+            padding: 0 10px;
         }
+
+        .settings-toggle {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .settings-toggle svg {
+            fill: none;
+            stroke: #888;
+            stroke-width: 2;
+            width: 22px;
+            height: 22px;
+            transition: stroke 0.2s;
+        }
+        .settings-toggle:hover svg { stroke: white; }
 
         .controls {
             display: flex;
@@ -85,45 +140,70 @@
         }
 
         .btn {
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.1s ease, background 0.2s ease;
+            border: none; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s ease;
         }
-
         .btn:active { transform: scale(0.92); }
 
         .dark-btn {
             background: linear-gradient(145deg, #333333, #1f1f1f);
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-            width: 60px;
-            height: 60px;
-            color: white;
+            width: 60px; height: 60px; color: white;
         }
-
-        .dark-btn:hover { background: linear-gradient(145deg, #3a3a3a, #262626); }
-
-        .dark-btn svg {
-            fill: none; stroke: #ddd; stroke-width: 2;
-            stroke-linecap: round; stroke-linejoin: round;
-            width: 22px; height: 22px;
-        }
+        .dark-btn svg { width: 20px; height: 20px; }
 
         .red-btn {
-            background: #ff3b30;
+            background: var(--red-accent);
             width: 76px; height: 76px;
             box-shadow: 0 8px 20px rgba(255, 59, 48, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2);
         }
-
-        .red-btn:hover { background: #ff4f45; }
-
         .red-btn svg { fill: white; width: 28px; height: 28px; stroke: none; }
 
-        #stopBtn svg { fill: #ddd; stroke: none; width: 16px; height: 16px; border-radius: 2px; }
+        /* --- SETTINGS PANEL (Volume & Speed) --- */
+        #settingsPanel {
+            display: none;
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(22, 22, 22, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 0 0 42px 42px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .slider-group {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .slider-label {
+            font-size: 10px; font-family: sans-serif;
+            color: #aaa; text-transform: uppercase; letter-spacing: 1px;
+            display: flex; justify-content: space-between;
+        }
+
+        /* Premium Custom Sliders */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: rgba(255, 255, 255, 0.1); border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 14px; width: 14px; border-radius: 50%;
+            background: white; cursor: pointer;
+            -webkit-appearance: none; margin-top: -5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        input[type=range]:active::-webkit-slider-thumb {
+            background: var(--red-accent);
+        }
 
         input[type="file"] { display: none; }
     </style>
@@ -132,158 +212,235 @@
 
     <div class="outer-shell">
         <div class="inner-glass">
-            <!-- 400x120 High Res for crisp lines -->
-            <canvas id="waveformCanvas" width="400" height="120"></canvas>
             
-            <div class="info-row">
-                <span class="time-display" id="currentTime">00:00</span>
-                <div class="status-text" id="statusText">NO AUDIO<br>SELECTED</div>
-            </div>
-
-            <div class="controls">
-                <!-- Clean Upload/Select Icon -->
-                <button class="btn dark-btn" id="uploadBtn" title="Load Audio">
-                    <svg viewBox="0 0 24 24">
+            <!-- STATE 1: ONLY VISIBLE BEFORE AUDIO UPLOAD -->
+            <div id="uploadState">
+                <button class="btn dark-btn" id="mainUploadBtn" style="width: 80px; height: 80px;">
+                    <svg viewBox="0 0 24 24" style="fill: none; stroke: white; stroke-width: 1.5; stroke-linecap: round;">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
                 </button>
-                
-                <button class="btn red-btn" id="playPauseBtn">
-                    <svg id="playIcon" viewBox="0 0 24 24" style="margin-left: 4px;"><path d="M8 5v14l11-7z"/></svg>
-                    <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
-                        <rect x="6" y="5" width="4" height="14" rx="1"></rect>
-                        <rect x="14" y="5" width="4" height="14" rx="1"></rect>
-                    </svg>
-                </button>
-                
-                <button class="btn dark-btn" id="stopBtn" title="Stop & Remove">
-                    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
-                </button>
+                <div class="upload-text">SELECT AUDIO FILE</div>
             </div>
 
+            <!-- STATE 2: THE PLAYER (Hidden by default) -->
+            <div id="playerState">
+                <canvas id="waveformCanvas" width="400" height="120"></canvas>
+                
+                <div class="info-row">
+                    <span class="time-display" id="currentTime">00:00</span>
+                    <!-- Title extracted directly from file -->
+                    <div class="track-title" id="trackTitle">Track Name</div>
+                    
+                    <!-- Settings Toggle Icon -->
+                    <button class="settings-toggle" id="settingsBtn">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="controls">
+                    <!-- Close Settings (hidden in controls row normally, swaps with settings panel) -->
+                    <button class="btn dark-btn" id="stopBtn" title="Stop & Remove">
+                        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ddd"></rect></svg>
+                    </button>
+                    
+                    <button class="btn red-btn" id="playPauseBtn">
+                        <svg id="playIcon" viewBox="0 0 24 24" style="margin-left: 4px;"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
+                            <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+                            <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+                        </svg>
+                        <!-- New Replay Icon -->
+                        <svg id="replayIcon" viewBox="0 0 24 24" style="display: none;">
+                            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- Change Track Button -->
+                    <button class="btn dark-btn" id="changeTrackBtn" title="Change Audio">
+                        <svg viewBox="0 0 24 24" style="fill: none; stroke: #ddd; stroke-width: 2; stroke-linecap: round;">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Settings Dropdown Panel -->
+                <div id="settingsPanel">
+                    <div class="slider-group">
+                        <div class="slider-label"><span>Volume</span><span id="volVal">100%</span></div>
+                        <input type="range" id="volSlider" min="0" max="1" step="0.01" value="1">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span>Speed</span><span id="speedVal">1.0x</span></div>
+                        <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden File Input -->
             <input type="file" id="audioInput" accept="audio/*">
         </div>
     </div>
 
     <script>
+        // UI Elements
+        const uploadState = document.getElementById('uploadState');
+        const playerState = document.getElementById('playerState');
+        const audioInput = document.getElementById('audioInput');
+        const mainUploadBtn = document.getElementById('mainUploadBtn');
+        const changeTrackBtn = document.getElementById('changeTrackBtn');
+        
         const canvas = document.getElementById('waveformCanvas');
         const ctx = canvas.getContext('2d');
-        const audioInput = document.getElementById('audioInput');
-        const uploadBtn = document.getElementById('uploadBtn');
         const playPauseBtn = document.getElementById('playPauseBtn');
         const stopBtn = document.getElementById('stopBtn');
         const timeDisplay = document.getElementById('currentTime');
-        const statusText = document.getElementById('statusText');
+        const trackTitle = document.getElementById('trackTitle');
+        
         const playIcon = document.getElementById('playIcon');
         const pauseIcon = document.getElementById('pauseIcon');
+        const replayIcon = document.getElementById('replayIcon');
+
+        // Settings Elements
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const volSlider = document.getElementById('volSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const volVal = document.getElementById('volVal');
+        const speedVal = document.getElementById('speedVal');
 
         const audio = new Audio();
         let audioContext;
         
-        // ----------------------------------------
-        // MATH FOR TRAVELING & MAGNIFIER WAVEFORM
-        // ----------------------------------------
+        // Waveform Variables
         const barWidth = 3.5;
         const gap = 3.5;
         const barTotal = barWidth + gap;
-        
-        // Canvas par ek baar me kitne seconds ka wave dikhega (10 seconds total: 5s left, 5s right)
         const visibleTime = 10; 
-        const pxPerSec = canvas.width / visibleTime; // Pixels travel per second (400/10 = 40px)
-        const timePerBar = barTotal / pxPerSec; // Ek bar kitne time ka data dikhayega
+        const pxPerSec = canvas.width / visibleTime; 
+        const timePerBar = barTotal / pxPerSec; 
         
         let audioPeaks = []; 
         let isDrawing = false;
-        let decodedDuration = 0; // High precision duration from buffer
+        let decodedDuration = 0; 
+        let isSettingsOpen = false;
 
-        // 1. File Upload & Decode Logic
-        uploadBtn.addEventListener('click', () => audioInput.click());
+        // 1. UPLOAD & STATE MANAGEMENT
+        mainUploadBtn.addEventListener('click', () => audioInput.click());
+        changeTrackBtn.addEventListener('click', () => audioInput.click());
 
         audioInput.addEventListener('change', async function() {
             const file = this.files[0];
             if (!file) return;
 
-            statusText.innerHTML = "ANALYZING<br>TRACK...";
+            // Extract File Name & Remove Extension
+            let cleanName = file.name.replace(/\.[^/.]+$/, "");
+            trackTitle.textContent = cleanName;
+
+            // Swap UI States
+            uploadState.style.display = 'none';
+            playerState.style.display = 'flex';
+            
+            // Audio setup
             audio.src = URL.createObjectURL(file);
             timeDisplay.textContent = "00:00";
             
-            // Web Audio API se exact buffer read karke wave banayenge
+            // Reset Icons
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+            replayIcon.style.display = 'none';
+
+            // Decode Audio for Waveform
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
             decodedDuration = audioBuffer.duration;
             extractPeaks(audioBuffer);
-            
-            statusText.innerHTML = "TRACK READY<br>PRESS PLAY";
             drawWaveformFrame(); 
         });
 
-        // 2. Extract Data for Sliding Window
-        function extractPeaks(buffer) {
-            const rawData = buffer.getChannelData(0); 
-            // Total bars needed for the entire song
-            const totalBars = Math.ceil(decodedDuration / timePerBar);
-            const samplesPerBar = Math.floor(rawData.length / totalBars);
-            
-            audioPeaks = [];
+        // 2. SETTINGS PANEL LOGIC
+        settingsBtn.addEventListener('click', () => {
+            isSettingsOpen = !isSettingsOpen;
+            settingsPanel.style.display = isSettingsOpen ? 'flex' : 'none';
+        });
 
-            for (let i = 0; i < totalBars; i++) {
-                let peak = 0;
-                const offset = i * samplesPerBar;
-                // Har chunk me se max volume nikalna
-                for (let j = 0; j < samplesPerBar; j++) {
-                    const absVal = Math.abs(rawData[offset + j] || 0);
-                    if (absVal > peak) peak = absVal;
-                }
-                audioPeaks.push(peak);
-            }
+        // Volume Control
+        volSlider.addEventListener('input', (e) => {
+            audio.volume = e.target.value;
+            volVal.textContent = Math.round(e.target.value * 100) + '%';
+        });
 
-            // Normalization: Scale heights so they don't break canvas when magnified 1.5x at center
-            const maxPeak = Math.max(...audioPeaks);
-            const baseMaxHeight = (canvas.height * 0.55); // Limits the normal peak height
-            audioPeaks = audioPeaks.map(p => (p / maxPeak) * baseMaxHeight);
-        }
+        // Speed Control
+        speedSlider.addEventListener('input', (e) => {
+            audio.playbackRate = e.target.value;
+            speedVal.textContent = parseFloat(e.target.value).toFixed(1) + 'x';
+        });
 
-        // 3. Play / Pause
+        // 3. AUDIO CONTROLS (Play/Pause/Replay/Stop)
         playPauseBtn.addEventListener('click', () => {
             if (!audio.src) return;
+
+            // Replay logic if audio was ended
+            if (audio.ended) {
+                audio.currentTime = 0;
+            }
 
             if (audio.paused) {
                 audio.play();
                 playIcon.style.display = 'none';
+                replayIcon.style.display = 'none';
                 pauseIcon.style.display = 'block';
-                statusText.innerHTML = "NOW PLAYING<br>AUDIO TRACK";
+                
+                // Hide settings if playing
+                if(isSettingsOpen) {
+                    isSettingsOpen = false;
+                    settingsPanel.style.display = 'none';
+                }
+                
                 if (!isDrawing) drawWaveformLoop();
             } else {
                 audio.pause();
                 playIcon.style.display = 'block';
                 pauseIcon.style.display = 'none';
-                statusText.innerHTML = "TRACK PAUSED<br>...";
+                replayIcon.style.display = 'none';
                 isDrawing = false;
             }
         });
 
-        // 4. Stop
         stopBtn.addEventListener('click', () => {
             audio.pause();
             audio.removeAttribute('src'); 
             audio.load(); 
             audioPeaks = []; 
             
-            playIcon.style.display = 'block';
-            pauseIcon.style.display = 'none';
-            timeDisplay.textContent = "00:00";
-            statusText.innerHTML = "NO AUDIO<br>SELECTED";
+            // Go back to State 1
+            uploadState.style.display = 'flex';
+            playerState.style.display = 'none';
+            isSettingsOpen = false;
+            settingsPanel.style.display = 'none';
             
             isDrawing = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
             audioInput.value = ""; 
         });
 
-        // 5. Time Updates
+        // 4. TIMER & ENDED EVENTS
         audio.addEventListener('timeupdate', () => {
             if (!audio.src) return;
             const current = Math.floor(audio.currentTime);
@@ -291,20 +448,40 @@
             const seconds = (current % 60).toString().padStart(2, '0');
             timeDisplay.textContent = `${minutes}:${seconds}`;
             
-            // Paused hone par slide bar manually update ho
             if(audio.paused) drawWaveformFrame(); 
         });
 
         audio.addEventListener('ended', () => {
-            playIcon.style.display = 'block';
+            playIcon.style.display = 'none';
             pauseIcon.style.display = 'none';
-            statusText.innerHTML = "TRACK ENDED<br>PRESS PLAY";
-            audio.currentTime = 0;
+            replayIcon.style.display = 'block'; // Show replay arrow
+            
             isDrawing = false;
             drawWaveformFrame();
         });
 
-        // 6. Sliding Math & Drawing Engine (The Magic)
+        // 5. WAVEFORM MATH & DRAWING (No Glow)
+        function extractPeaks(buffer) {
+            const rawData = buffer.getChannelData(0); 
+            const totalBars = Math.ceil(decodedDuration / timePerBar);
+            const samplesPerBar = Math.floor(rawData.length / totalBars);
+            
+            audioPeaks = [];
+            for (let i = 0; i < totalBars; i++) {
+                let peak = 0;
+                const offset = i * samplesPerBar;
+                for (let j = 0; j < samplesPerBar; j++) {
+                    const absVal = Math.abs(rawData[offset + j] || 0);
+                    if (absVal > peak) peak = absVal;
+                }
+                audioPeaks.push(peak);
+            }
+
+            const maxPeak = Math.max(...audioPeaks);
+            const baseMaxHeight = (canvas.height * 0.55); 
+            audioPeaks = audioPeaks.map(p => (p / maxPeak) * baseMaxHeight);
+        }
+
         function drawWaveformFrame() {
             if (audioPeaks.length === 0) return;
 
@@ -312,53 +489,33 @@
             const centerY = canvas.height / 2;
             const centerX = canvas.width / 2;
 
-            // Center mark: Ek bohot hi light red glow playhead mark karne ke liye
-            let gradient = ctx.createLinearGradient(centerX, centerY - 20, centerX, centerY + 20);
-            gradient.addColorStop(0, "rgba(255, 59, 48, 0)");
-            gradient.addColorStop(0.5, "rgba(255, 59, 48, 0.4)");
-            gradient.addColorStop(1, "rgba(255, 59, 48, 0)");
-            ctx.fillStyle = gradient;
-            ctx.fillRect(centerX - 15, 0, 30, canvas.height);
-
             const currTime = audio.currentTime || 0;
-            
-            // Konse bars screen par dikhne chahiye (Start to End limit)
             const startBar = Math.floor((currTime - visibleTime / 2) / timePerBar);
             const endBar = Math.ceil((currTime + visibleTime / 2) / timePerBar);
 
             for (let i = startBar; i <= endBar; i++) {
-                if (i < 0 || i >= audioPeaks.length) continue; // Out of bounds skip
+                if (i < 0 || i >= audioPeaks.length) continue; 
 
-                // Wave ko smooth slide karne ka main logic
                 const barTime = i * timePerBar;
                 const x = centerX + ((barTime - currTime) * pxPerSec); 
 
-                // Magnifier Effect Logic based on distance from center
                 const dist = Math.abs(x - centerX);
                 const maxDist = centerX;
-                // Ratio: 1 at exact center, 0 at the very edges
                 const ratio = Math.max(0, 1 - (dist / maxDist)); 
 
-                // Styling variations based on ratio
-                // Center pe opacity 1 (100%), kinaro par 0.15 (15%)
                 const opacity = 0.15 + (0.85 * ratio); 
-                
-                // Center pe bar ki height 1.6x badi hogi, kinaro par shrink ho jayegi
                 const scale = 0.4 + (1.2 * Math.pow(ratio, 1.5)); 
                 
-                // Minimum bar height 2px rakhi hai taaki completely empty na lage
                 let baseHeight = audioPeaks[i] > 2 ? audioPeaks[i] : 2; 
                 let h = baseHeight * scale;
 
-                // Center wale active bars halke bright white lagene
                 ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                 ctx.fillRect(x - (barWidth/2), centerY - (h / 2), barWidth, h);
             }
         }
 
-        // 60FPS Animation Loop
         function drawWaveformLoop() {
-            if(audio.paused) return; // Battery bachane ke liye pause pe loop band
+            if(audio.paused) return; 
             isDrawing = true;
             drawWaveformFrame();
             requestAnimationFrame(drawWaveformLoop);
