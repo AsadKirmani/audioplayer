@@ -9,211 +9,196 @@
     <style>
         :root {
             --red-accent: #ff3b30;
-            --glass-bg: linear-gradient(160deg, #2a2a2c 0%, #161616 100%);
+        }
+
+        /* 1. Global Box Sizing Fix */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* 2. Strict Page Dimensions Fix */
+        html, body {
+            width: 100%;
+            height: 100dvh; /* Changed from 100vh to 100dvh (Dynamic Viewport) to prevent mobile height jumps */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Strictly prevent any scrolling */
+            background-color: #050505; 
         }
 
         body {
-            background-color: #121212; 
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
             font-family: 'Space Mono', monospace;
             color: white;
             user-select: none;
+            position: relative;
+        }
+
+        /* 3. Restricted Ambient Glow */
+        .ambient-bg {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, rgba(255,59,48,0.15) 0%, rgba(50,50,255,0.05) 40%, transparent 70%);
+            filter: blur(60px);
+            z-index: 0;
+            animation: float 10s infinite alternate ease-in-out;
+            pointer-events: none; /* Prevents touch interference */
+        }
+
+        @keyframes float {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
         }
 
         .outer-shell {
-            background: #181818;
-            padding: 12px;
+            background: rgba(30, 30, 35, 0.4);
+            padding: 14px;
             border-radius: 54px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.02), inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+            z-index: 1;
+            position: relative;
         }
 
         .inner-glass {
-            background: var(--glass-bg);
-            border: 1px solid rgba(255, 255, 255, 0.08); 
+            background: rgba(20, 20, 22, 0.5);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.15); 
             border-radius: 42px;
-            padding: 40px 30px;
-            width: 280px; 
-            min-height: 250px;
+            padding: 40px 25px;
+            
+            /* 4. Fixed Container Size Fix */
+            width: 320px; 
+            height: 380px; /* Fixed height so changing states doesn't shrink/grow the container */
+            max-width: 90vw; /* Keeps it safe on very small phones */
+            
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.1);
             position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
+            overflow: hidden; 
+            
+            /* Removed 'transition: all' to stop the layout jitter bug */
         }
 
-        /* --- STATE 1: INITIAL UPLOAD UI --- */
+        /* --- STATE 1: UPLOAD UI --- */
         #uploadState {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            gap: 20px;
-            width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 20px; width: 100%; height: 100%;
         }
 
         .upload-text {
-            font-size: 14px;
-            color: #aaa;
-            letter-spacing: 1px;
-            font-family: sans-serif;
-            font-weight: 600;
+            font-size: 14px; color: #ddd; letter-spacing: 1px; font-family: sans-serif; font-weight: 600;
         }
 
         /* --- STATE 2: PLAYER UI --- */
         #playerState {
-            display: none; /* Hidden by default */
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: space-between; 
+            width: 100%; height: 100%; padding: 10px 0;
         }
 
         canvas {
-            width: 100%;
-            height: 90px;
-            margin-bottom: 25px;
-            display: block;
+            width: 100%; height: 100px; display: block;
         }
 
         .info-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            display: flex; align-items: center; justify-content: space-between;
             width: 100%;
-            margin-bottom: 30px;
         }
 
         .time-display {
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -1px;
-            width: 80px;
+            font-size: 26px; font-weight: 700; letter-spacing: -1px; width: 85px; text-align: left;
         }
 
         .track-title {
-            font-size: 11px;
-            color: #ddd;
-            letter-spacing: 0.5px;
-            font-family: sans-serif;
-            font-weight: 600;
-            text-transform: uppercase;
-            text-align: center;
-            flex-grow: 1;
-            /* Truncate long names */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 130px;
-            padding: 0 10px;
+            font-size: 11px; color: #ddd; letter-spacing: 0.5px; font-family: sans-serif;
+            font-weight: 600; text-transform: uppercase; text-align: center; flex-grow: 1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; padding: 0 10px;
         }
 
         .settings-toggle {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 5px;
+            background: transparent; border: none; cursor: pointer; padding: 5px;
+            display: flex; align-items: center; justify-content: flex-end; width: 40px;
         }
-        
         .settings-toggle svg {
-            fill: none;
-            stroke: #888;
-            stroke-width: 2;
-            width: 22px;
-            height: 22px;
-            transition: stroke 0.2s;
+            fill: none; stroke: #aaa; stroke-width: 2; width: 24px; height: 24px; transition: stroke 0.2s;
         }
         .settings-toggle:hover svg { stroke: white; }
 
         .controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px; 
-            width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; z-index: 2;
         }
 
         .btn {
-            border: none; border-radius: 50%;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: transform 0.1s ease;
+            border: none; border-radius: 50%; cursor: pointer; display: flex; 
+            align-items: center; justify-content: center; transition: transform 0.1s ease;
         }
         .btn:active { transform: scale(0.92); }
 
         .dark-btn {
-            background: linear-gradient(145deg, #333333, #1f1f1f);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            background: linear-gradient(145deg, rgba(60, 60, 60, 0.8), rgba(30, 30, 30, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
             width: 60px; height: 60px; color: white;
         }
-        .dark-btn svg { width: 20px; height: 20px; }
+        .dark-btn svg { width: 24px; height: 24px; }
 
         .red-btn {
             background: var(--red-accent);
             width: 76px; height: 76px;
-            box-shadow: 0 8px 20px rgba(255, 59, 48, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 20px rgba(255, 59, 48, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.2);
         }
-        .red-btn svg { fill: white; width: 28px; height: 28px; stroke: none; }
+        .red-btn svg { fill: white; width: 34px; height: 34px; stroke: none; }
+        
+        #stopBtn svg { width: 26px; height: 26px; }
 
-        /* --- SETTINGS PANEL (Volume & Speed) --- */
+        /* --- SETTINGS PANEL --- */
         #settingsPanel {
-            display: none;
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            background: rgba(22, 22, 22, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            border-radius: 0 0 42px 42px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            flex-direction: column;
-            gap: 20px;
-            z-index: 10;
+            position: absolute; bottom: -100%; left: 0; right: 0;
+            background: rgba(20, 20, 22, 0.95); backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 0 0 42px 42px; border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; flex-direction: column; gap: 25px; z-index: 10;
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+        
+        #settingsPanel.active {
+            bottom: 0;
         }
 
-        .slider-group {
-            display: flex; flex-direction: column; gap: 8px;
-        }
+        .slider-group { display: flex; flex-direction: column; gap: 8px; }
 
         .slider-label {
-            font-size: 10px; font-family: sans-serif;
-            color: #aaa; text-transform: uppercase; letter-spacing: 1px;
-            display: flex; justify-content: space-between;
+            font-size: 10px; font-family: sans-serif; color: #aaa; text-transform: uppercase; 
+            letter-spacing: 1px; display: flex; justify-content: space-between;
         }
 
-        /* Premium Custom Sliders */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent;
-        }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; cursor: pointer;
-            background: rgba(255, 255, 255, 0.1); border-radius: 2px;
+            width: 100%; height: 4px; cursor: pointer; background: rgba(255, 255, 255, 0.15); border-radius: 2px;
         }
         input[type=range]::-webkit-slider-thumb {
-            height: 14px; width: 14px; border-radius: 50%;
-            background: white; cursor: pointer;
-            -webkit-appearance: none; margin-top: -5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            height: 16px; width: 16px; border-radius: 50%; background: white; cursor: pointer;
+            -webkit-appearance: none; margin-top: -6px; box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-        input[type=range]:active::-webkit-slider-thumb {
-            background: var(--red-accent);
-        }
-
+        input[type=range]:active::-webkit-slider-thumb { background: var(--red-accent); }
+        
         input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
+    <div class="ambient-bg"></div>
+
     <div class="outer-shell">
         <div class="inner-glass">
             
-            <!-- STATE 1: ONLY VISIBLE BEFORE AUDIO UPLOAD -->
+            <!-- STATE 1: UPLOAD -->
             <div id="uploadState">
                 <button class="btn dark-btn" id="mainUploadBtn" style="width: 80px; height: 80px;">
                     <svg viewBox="0 0 24 24" style="fill: none; stroke: white; stroke-width: 1.5; stroke-linecap: round;">
@@ -225,16 +210,14 @@
                 <div class="upload-text">SELECT AUDIO FILE</div>
             </div>
 
-            <!-- STATE 2: THE PLAYER (Hidden by default) -->
+            <!-- STATE 2: PLAYER -->
             <div id="playerState">
                 <canvas id="waveformCanvas" width="400" height="120"></canvas>
                 
                 <div class="info-row">
                     <span class="time-display" id="currentTime">00:00</span>
-                    <!-- Title extracted directly from file -->
                     <div class="track-title" id="trackTitle">Track Name</div>
                     
-                    <!-- Settings Toggle Icon -->
                     <button class="settings-toggle" id="settingsBtn">
                         <svg viewBox="0 0 24 24">
                             <line x1="4" y1="21" x2="4" y2="14"></line>
@@ -251,9 +234,8 @@
                 </div>
 
                 <div class="controls">
-                    <!-- Close Settings (hidden in controls row normally, swaps with settings panel) -->
                     <button class="btn dark-btn" id="stopBtn" title="Stop & Remove">
-                        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ddd"></rect></svg>
+                        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="#ddd"></rect></svg>
                     </button>
                     
                     <button class="btn red-btn" id="playPauseBtn">
@@ -262,13 +244,11 @@
                             <rect x="6" y="5" width="4" height="14" rx="1"></rect>
                             <rect x="14" y="5" width="4" height="14" rx="1"></rect>
                         </svg>
-                        <!-- New Replay Icon -->
                         <svg id="replayIcon" viewBox="0 0 24 24" style="display: none;">
                             <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
                         </svg>
                     </button>
                     
-                    <!-- Change Track Button -->
                     <button class="btn dark-btn" id="changeTrackBtn" title="Change Audio">
                         <svg viewBox="0 0 24 24" style="fill: none; stroke: #ddd; stroke-width: 2; stroke-linecap: round;">
                             <path d="M9 18V5l12-2v13"></path>
@@ -278,7 +258,7 @@
                     </button>
                 </div>
 
-                <!-- Settings Dropdown Panel -->
+                <!-- SETTINGS PANEL -->
                 <div id="settingsPanel">
                     <div class="slider-group">
                         <div class="slider-label"><span>Volume</span><span id="volVal">100%</span></div>
@@ -291,13 +271,11 @@
                 </div>
             </div>
 
-            <!-- Hidden File Input -->
             <input type="file" id="audioInput" accept="audio/*">
         </div>
     </div>
 
     <script>
-        // UI Elements
         const uploadState = document.getElementById('uploadState');
         const playerState = document.getElementById('playerState');
         const audioInput = document.getElementById('audioInput');
@@ -315,7 +293,6 @@
         const pauseIcon = document.getElementById('pauseIcon');
         const replayIcon = document.getElementById('replayIcon');
 
-        // Settings Elements
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsPanel = document.getElementById('settingsPanel');
         const volSlider = document.getElementById('volSlider');
@@ -326,9 +303,8 @@
         const audio = new Audio();
         let audioContext;
         
-        // Waveform Variables
-        const barWidth = 3.5;
-        const gap = 3.5;
+        const barWidth = 4;
+        const gap = 3;
         const barTotal = barWidth + gap;
         const visibleTime = 10; 
         const pxPerSec = canvas.width / visibleTime; 
@@ -339,7 +315,6 @@
         let decodedDuration = 0; 
         let isSettingsOpen = false;
 
-        // 1. UPLOAD & STATE MANAGEMENT
         mainUploadBtn.addEventListener('click', () => audioInput.click());
         changeTrackBtn.addEventListener('click', () => audioInput.click());
 
@@ -347,24 +322,22 @@
             const file = this.files[0];
             if (!file) return;
 
-            // Extract File Name & Remove Extension
             let cleanName = file.name.replace(/\.[^/.]+$/, "");
             trackTitle.textContent = cleanName;
 
-            // Swap UI States
             uploadState.style.display = 'none';
             playerState.style.display = 'flex';
             
-            // Audio setup
             audio.src = URL.createObjectURL(file);
             timeDisplay.textContent = "00:00";
             
-            // Reset Icons
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
             replayIcon.style.display = 'none';
+            
+            settingsPanel.classList.remove('active');
+            isSettingsOpen = false;
 
-            // Decode Audio for Waveform
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -374,32 +347,29 @@
             drawWaveformFrame(); 
         });
 
-        // 2. SETTINGS PANEL LOGIC
         settingsBtn.addEventListener('click', () => {
             isSettingsOpen = !isSettingsOpen;
-            settingsPanel.style.display = isSettingsOpen ? 'flex' : 'none';
+            if(isSettingsOpen) {
+                settingsPanel.classList.add('active');
+            } else {
+                settingsPanel.classList.remove('active');
+            }
         });
 
-        // Volume Control
         volSlider.addEventListener('input', (e) => {
             audio.volume = e.target.value;
             volVal.textContent = Math.round(e.target.value * 100) + '%';
         });
 
-        // Speed Control
         speedSlider.addEventListener('input', (e) => {
             audio.playbackRate = e.target.value;
             speedVal.textContent = parseFloat(e.target.value).toFixed(1) + 'x';
         });
 
-        // 3. AUDIO CONTROLS (Play/Pause/Replay/Stop)
         playPauseBtn.addEventListener('click', () => {
             if (!audio.src) return;
 
-            // Replay logic if audio was ended
-            if (audio.ended) {
-                audio.currentTime = 0;
-            }
+            if (audio.ended) audio.currentTime = 0;
 
             if (audio.paused) {
                 audio.play();
@@ -407,11 +377,8 @@
                 replayIcon.style.display = 'none';
                 pauseIcon.style.display = 'block';
                 
-                // Hide settings if playing
-                if(isSettingsOpen) {
-                    isSettingsOpen = false;
-                    settingsPanel.style.display = 'none';
-                }
+                settingsPanel.classList.remove('active');
+                isSettingsOpen = false;
                 
                 if (!isDrawing) drawWaveformLoop();
             } else {
@@ -429,38 +396,34 @@
             audio.load(); 
             audioPeaks = []; 
             
-            // Go back to State 1
             uploadState.style.display = 'flex';
             playerState.style.display = 'none';
+            
+            settingsPanel.classList.remove('active');
             isSettingsOpen = false;
-            settingsPanel.style.display = 'none';
             
             isDrawing = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
             audioInput.value = ""; 
         });
 
-        // 4. TIMER & ENDED EVENTS
         audio.addEventListener('timeupdate', () => {
             if (!audio.src) return;
             const current = Math.floor(audio.currentTime);
             const minutes = Math.floor(current / 60).toString().padStart(2, '0');
             const seconds = (current % 60).toString().padStart(2, '0');
             timeDisplay.textContent = `${minutes}:${seconds}`;
-            
             if(audio.paused) drawWaveformFrame(); 
         });
 
         audio.addEventListener('ended', () => {
             playIcon.style.display = 'none';
             pauseIcon.style.display = 'none';
-            replayIcon.style.display = 'block'; // Show replay arrow
-            
+            replayIcon.style.display = 'block'; 
             isDrawing = false;
             drawWaveformFrame();
         });
 
-        // 5. WAVEFORM MATH & DRAWING (No Glow)
         function extractPeaks(buffer) {
             const rawData = buffer.getChannelData(0); 
             const totalBars = Math.ceil(decodedDuration / timePerBar);
@@ -478,7 +441,7 @@
             }
 
             const maxPeak = Math.max(...audioPeaks);
-            const baseMaxHeight = (canvas.height * 0.55); 
+            const baseMaxHeight = (canvas.height * 0.7); 
             audioPeaks = audioPeaks.map(p => (p / maxPeak) * baseMaxHeight);
         }
 
@@ -498,13 +461,15 @@
 
                 const barTime = i * timePerBar;
                 const x = centerX + ((barTime - currTime) * pxPerSec); 
+                const distInSeconds = Math.abs(barTime - currTime);
+                
+                let opacity = 0.15; 
+                if (distInSeconds <= 2.5) {
+                    opacity = 1.0; 
+                }
 
-                const dist = Math.abs(x - centerX);
-                const maxDist = centerX;
-                const ratio = Math.max(0, 1 - (dist / maxDist)); 
-
-                const opacity = 0.15 + (0.85 * ratio); 
-                const scale = 0.4 + (1.2 * Math.pow(ratio, 1.5)); 
+                const distRatio = Math.max(0, 1 - (distInSeconds / (visibleTime / 2))); 
+                const scale = 0.6 + (0.7 * distRatio); 
                 
                 let baseHeight = audioPeaks[i] > 2 ? audioPeaks[i] : 2; 
                 let h = baseHeight * scale;
